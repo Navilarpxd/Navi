@@ -5,12 +5,12 @@ local NaviHub =
 NaviUI:CreateWindow({
     Title = "Onyx Hub | By Navi <font color='#FFD700'>[BETA]</font>",
     Author = "By Navi",
-    Folder = "Onyx",
+    Folder = "Onyx Hub",
     Acrylic = false,
     Transparent = false,
     NewElements = true,
     HideSearchBar = false,
-    Background = "rbxassetid://86091313378854",
+    Background = "rbxassetid://76763700600186",
     BackgroundImageTransparency = 0.55,
     OpenButton = {
         Title = "OPEN",
@@ -1149,7 +1149,7 @@ Movimiento:Toggle({
 })
 
 Movimiento:Toggle({
-    Title = "FLY SPEED V1",
+    Title = "FLY SPEED V2",
     Default = false,
     Callback = function(state)
         local Players = game:GetService("Players")
@@ -1164,8 +1164,10 @@ Movimiento:Toggle({
             if lp.Character and lp.Character:FindFirstChildOfClass("Humanoid") then
                 lp.Character:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.GettingUp)
             end
+            Notify("Navi Hub", "Fly Speed V2 DESACTIVADO")
             return
         end
+        Notify("Navi Hub", "Fly Speed V2 ACTIVADO")
         if PlayerGui:FindFirstChild("Navi_FLYSPEED") then
             PlayerGui:FindFirstChild("Navi_FLYSPEED"):Destroy()
         end
@@ -1173,8 +1175,8 @@ Movimiento:Toggle({
         gui.Name = "Navi_FLYSPEED"
         gui.ResetOnSpawn = false
         gui.Parent = PlayerGui
-        local SPEED = 0.75
-        local V_SPEED = 1.1
+        local SPEED = 2.8          -- mucho más rápido (antes 0.75)
+        local V_SPEED = 3.2        -- vertical más fuerte (antes 1.1)
         local mov = {W=false,A=false,S=false,D=false,Up=false,Down=false}
         local presionando = false
         local pad = Instance.new("Frame", gui)
@@ -1284,12 +1286,12 @@ Movimiento:Toggle({
         conectar(upV,"Up")
         conectar(downV,"Down")
         bajar.MouseButton1Click:Connect(function()
-            SPEED = math.clamp(SPEED - 0.1, 0.2, 3)
-            V_SPEED = math.clamp(V_SPEED - 0.1, 0.2, 3)
+            SPEED = math.clamp(SPEED - 0.25, 0.5, 12)
+            V_SPEED = math.clamp(V_SPEED - 0.25, 0.5, 12)
         end)
         subir.MouseButton1Click:Connect(function()
-            SPEED = math.clamp(SPEED + 0.1, 0.2, 3)
-            V_SPEED = math.clamp(V_SPEED + 0.1, 0.2, 3)
+            SPEED = math.clamp(SPEED + 0.25, 0.5, 12)
+            V_SPEED = math.clamp(V_SPEED + 0.25, 0.5, 12)
         end)
         if _G.FlyCon1 then _G.FlyCon1:Disconnect() end
         if _G.FlyCon2 then _G.FlyCon2:Disconnect() end
@@ -1395,7 +1397,7 @@ if hookmetamethod and getnamecallmethod and checkcaller then
 end
 task.spawn(function()
     local params = RaycastParams.new() params.FilterType = Enum.RaycastFilterType.Exclude
-    while task.wait(0.1) do
+    while task.wait(0.03) do  -- más rápido
         if (autoShootEnabled or autoShootAgresivoEnabled) and not estaEnLobby() then
             local char = LP.Character
             if not char or not char:FindFirstChild("HumanoidRootPart") then continue end
@@ -1412,17 +1414,45 @@ task.spawn(function()
                         local function Proc(part)
                             local d = (part.Position - myPos).Magnitude
                             if d < shortest then
-                                if not workspace:Raycast(headPos, part.Position - headPos, params) then shortest = d closestPart = part end
+                                -- En modo agresivo ignoramos paredes (más xitado)
+                                if autoShootAgresivoEnabled or not workspace:Raycast(headPos, part.Position - headPos, params) then
+                                    shortest = d
+                                    closestPart = part
+                                end
                             end
                         end
-                        if autoShootAgresivoEnabled then for _, part in ipairs(p.Character:GetChildren()) do if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then Proc(part) end end
-                        elseif autoShootTargetPart == "Cabeza" then local h = p.Character:FindFirstChild("Head") if h then Proc(h) end
-                        elseif autoShootTargetPart == "Torso" then for _, n in ipairs({"UpperTorso","Torso","HumanoidRootPart"}) do local pt = p.Character:FindFirstChild(n) if pt then Proc(pt) end end
-                        else for _, part in ipairs(p.Character:GetChildren()) do if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then Proc(part) end end end
+                        if autoShootAgresivoEnabled then
+                            for _, part in ipairs(p.Character:GetChildren()) do
+                                if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then Proc(part) end
+                            end
+                        elseif autoShootTargetPart == "Cabeza" then
+                            local h = p.Character:FindFirstChild("Head")
+                            if h then Proc(h) end
+                        elseif autoShootTargetPart == "Torso" then
+                            for _, n in ipairs({"UpperTorso","Torso","HumanoidRootPart"}) do
+                                local pt = p.Character:FindFirstChild(n)
+                                if pt then Proc(pt) end
+                            end
+                        else
+                            for _, part in ipairs(p.Character:GetChildren()) do
+                                if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then Proc(part) end
+                            end
+                        end
                     end
                 end
             end
-            if closestPart then getgenv().NaviTargetPart = closestPart pcall(function() arma:Activate() task.delay(0.05, function() if arma.Parent == char then arma:Deactivate() end end) end) task.wait(0.2) else getgenv().NaviTargetPart = nil end
+            if closestPart then
+                getgenv().NaviTargetPart = closestPart
+                pcall(function()
+                    arma:Activate()
+                    task.delay(0.025, function()
+                        if arma.Parent == char then arma:Deactivate() end
+                    end)
+                end)
+                task.wait(autoShootAgresivoEnabled and 0.04 or 0.08) -- mucho más rápido
+            else
+                getgenv().NaviTargetPart = nil
+            end
         end
     end
 end)
@@ -1808,7 +1838,7 @@ Visuales:Section({ Title = "HITBOX ESPANDER", Icon = "solar:box-bold" })
 
 local hitboxEnabled = false
 local hitboxInvisible = false
-local hitboxSize = 3.5
+local hitboxSize = 6
 local hitboxColor = Color3.fromRGB(255, 0, 0)
 
 local function limpiarHitboxes()
@@ -1839,7 +1869,7 @@ Visuales:Toggle({
 Visuales:Slider({
     Title = "TAMAÑO",
     Step = 0.5,
-    Value = { Min = 1.0, Max = 18.0, Default = 3.5 },
+    Value = { Min = 1.0, Max = 40.0, Default = 6 },
     Callback = function(v) hitboxSize = v end
 })
 
