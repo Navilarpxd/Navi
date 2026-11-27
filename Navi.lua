@@ -1,247 +1,31 @@
+
 local _version = "1.6.66"
 local NaviUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/download/" .. _version .. "/main.lua"))()
 local NaviHub =
 NaviUI:CreateWindow({
-    Title = "<font color='#FF00E5'>N</font><font color='#00E5FF'>E</font><font color='#FFE500'>O</font><font color='#00FF8C'>N</font> <font color='#FF0040'>V</font><font color='#7B00FF'>O</font><font color='#00FFC8'>I</font><font color='#FF8A00'>D</font> <font color='#666666'>//</font> <font color='#FFD700'>NV-7</font>",
-    Author = "Navi",
+    Title = "Onyx Hub | By Navi <font color='#FFD700'>[BETA]</font>",
+    Author = "By Navi",
     Folder = "Onyx",
     Acrylic = false,
     Transparent = false,
     NewElements = true,
-    HideSearchBar = true,
-    Background = "rbxassetid://136946652149245",
-    BackgroundImageTransparency = 0.4,
+    HideSearchBar = false,
+    Background = "rbxassetid://126573191582738",
+    BackgroundImageTransparency = 0.55,
     OpenButton = {
-        Title = "NV",
-        Icon = "zap",
+        Title = "OPEN",
+        Icon = "swords",
         CornerRadius = UDim.new(0, 14),
-        StrokeThickness = 3,
+        StrokeThickness = 1.1,
         Enabled = true,
         Draggable = true,
-        Scale = 1.15,
-        Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 0, 229)),
-            ColorSequenceKeypoint.new(0.25, Color3.fromRGB(0, 229, 255)),
-            ColorSequenceKeypoint.new(0.50, Color3.fromRGB(0, 255, 140)),
-            ColorSequenceKeypoint.new(0.75, Color3.fromRGB(255, 229, 0)),
-            ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255, 0, 64)),
-        })
+        Scale = 0.9,
+        Color = ColorSequence.new(Color3.fromRGB(20, 20, 20), Color3.fromRGB(0, 0, 0))
     },
-    Topbar = { Height = 46, ButtonsType = "Mac" }
+    Topbar = { Height = 44, ButtonsType = "Default" }
 })
-local WIN_W, WIN_H = 620, 480
-NaviHub:SetSize(UDim2.fromOffset(WIN_W, WIN_H))
-
--- Tema custom "OnyxRGB"
-local themeOk = pcall(function()
-    NaviUI:AddTheme({
-        Name = "OnyxRGB",
-        Accent = Color3.fromHex("#FF00E5"),
-        Dialog = Color3.fromHex("#08000F"),
-        Outline = Color3.fromHex("#FF00E5"),
-        Text = Color3.fromHex("#FFFFFF"),
-        Placeholder = Color3.fromHex("#9A8AB0"),
-        Background = Color3.fromHex("#04000A"),
-        Button = Color3.fromHex("#120020"),
-        Icon = Color3.fromHex("#00E5FF"),
-    })
-end)
-pcall(function() NaviUI:SetTheme(themeOk and "OnyxRGB" or "Red") end)
-
--- ==================================================================
--- MOTOR RGB v2 (chaos neon: relleno arcoiris + borde neon + pulso)
--- ==================================================================
-do
-    local RunService = game:GetService("RunService")
-    local CoreGui = game:GetService("CoreGui")
-    local env = (getgenv and getgenv()) or _G
-
-    local RAINBOW = ColorSequence.new({
-        ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 0, 90)),
-        ColorSequenceKeypoint.new(0.14, Color3.fromRGB(255, 140, 0)),
-        ColorSequenceKeypoint.new(0.28, Color3.fromRGB(255, 255, 0)),
-        ColorSequenceKeypoint.new(0.42, Color3.fromRGB(0, 255, 110)),
-        ColorSequenceKeypoint.new(0.57, Color3.fromRGB(0, 230, 255)),
-        ColorSequenceKeypoint.new(0.71, Color3.fromRGB(60, 90, 255)),
-        ColorSequenceKeypoint.new(0.85, Color3.fromRGB(210, 0, 255)),
-        ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255, 0, 90)),
-    })
-
-    local records = {}                     -- lista de {g=, phase=, speed=, stroke=}
-    local done = setmetatable({}, { __mode = "k" })
-    local t0 = os.clock()
-    local rgbOn = true
-    local rgbSpeed = 1
-
-    local function register(g, stroke)
-        records[#records + 1] = {
-            g = g,
-            stroke = stroke,
-            phase = math.random(0, 359),
-            speed = (60 + math.random() * 220),
-        }
-        return g
-    end
-
-    -- API publica (compatible con lo viejo)
-    local function animate(g)
-        g.Color = RAINBOW
-        register(g, nil)
-        return g
-    end
-
-    local function text(label)
-        if done[label] then return end
-        done[label] = true
-        label.TextColor3 = Color3.new(1, 1, 1)
-        local g = Instance.new("UIGradient")
-        g.Color = RAINBOW
-        g.Parent = label
-        register(g, nil)
-        local st = label:FindFirstChildOfClass("UIStroke") or Instance.new("UIStroke", label)
-        st.Thickness = 1.5
-        st.Color = Color3.fromRGB(0, 0, 0)
-        st.Transparency = 0.15
-        st.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
-    end
-
-    -- Relleno arcoiris + borde neon + pulso. Esto es lo que vuelve todo irreconocible.
-    local function paint(obj, thickness, transparency)
-        if done[obj] then return end
-        done[obj] = true
-        local corner = obj:FindFirstChildOfClass("UICorner")
-        if corner then corner.CornerRadius = UDim.new(0, 14) end
-        obj.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        obj.BackgroundTransparency = transparency or 0.22
-        local fill = Instance.new("UIGradient")
-        fill.Color = RAINBOW
-        fill.Parent = obj
-        register(fill, nil)
-        local st = obj:FindFirstChildOfClass("UIStroke")
-        if not st then st = Instance.new("UIStroke", obj) end
-        st.Thickness = thickness or 2.5
-        st.Color = Color3.fromRGB(0, 0, 0)
-        st.Transparency = 0
-        st.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-        register(Instance.new("UIGradient", st), st)
-    end
-
-    local function frameOnly(obj, thickness)
-        if done[obj] then return end
-        done[obj] = true
-        local st = obj:FindFirstChildOfClass("UIStroke")
-        if not st then st = Instance.new("UIStroke", obj) end
-        st.Thickness = thickness or 2.6
-        st.Transparency = 0
-        st.Color = Color3.new(1, 1, 1)
-        st.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-        register(Instance.new("UIGradient", st), st)
-    end
-
-    env.NaviRGB = {
-        Stroke = frameOnly,
-        Text = text,
-        Animate = animate,
-        Paint = paint,
-        Rainbow = RAINBOW,
-        SetEnabled = function(v) rgbOn = v end,
-        SetSpeed = function(v) rgbSpeed = v end,
-    }
-
-    -- Animacion: 30 fps para no cargar el cel
-    local acc = 0
-    RunService.RenderStepped:Connect(function(dt)
-        acc += dt
-        if acc < 1 / 30 then return end
-        acc = 0
-        if not rgbOn then return end
-        local base = (os.clock() - t0) * 150 * rgbSpeed
-        for i = #records, 1, -1 do
-            local e = records[i]
-            local g = e.g
-            if not g or not g.Parent then
-                table.remove(records, i)
-            else
-                g.Rotation = (base * (e.speed / 130) + e.phase) % 360
-                if e.stroke and e.stroke.Parent then
-                    e.stroke.Transparency = 0.25 + (math.sin(os.clock() * 3.2 + e.phase * 0.05) * 0.35 + 0.35)
-                end
-            end
-        end
-    end)
-
-    -- Deteccion de elementos
-    local function isCard(o)
-        if not o:IsA("GuiObject") or not o.Visible or o.BackgroundTransparency >= 1 then return false end
-        if not o:FindFirstChildOfClass("UICorner") then return false end
-        local s = o.AbsoluteSize
-        if s.Y < 26 or s.Y > 72 or s.X < 80 then return false end
-        return o:FindFirstChildWhichIsA("TextLabel", true) ~= nil
-    end
-
-    local function isWindowFrame(o)
-        if not o:IsA("Frame") or not o:FindFirstChildOfClass("UICorner") then return false end
-        local s = o.AbsoluteSize
-        return math.abs(s.X - WIN_W) < 10 and math.abs(s.Y - WIN_H) < 10
-    end
-
-    local function isTopbar(o)
-        if not o:IsA("Frame") then return false end
-        local s = o.AbsoluteSize
-        return s.Y >= 38 and s.Y <= 54 and s.X > 380
-    end
-
-    local function isTabButton(o)
-        if not o:IsA("TextButton") and not o:IsA("Frame") then return false end
-        local s = o.AbsoluteSize
-        return s.X >= 70 and s.X <= 200 and s.Y >= 26 and s.Y <= 60
-    end
-
-    local function getRoots()
-        local roots = {}
-        local okH, hui = pcall(function() return gethui and gethui() end)
-        for _, container in ipairs({ okH and hui or CoreGui, CoreGui }) do
-            for _, g in ipairs(container:GetChildren()) do
-                if g:IsA("ScreenGui") and string.find(g.Name, "WindUI") and not table.find(roots, g) then
-                    roots[#roots + 1] = g
-                end
-            end
-        end
-        return roots
-    end
-
-    task.spawn(function()
-        while true do
-            for _, root in ipairs(getRoots()) do
-                local n = 0
-                for _, o in ipairs(root:GetDescendants()) do
-                    n += 1
-                    if n % 200 == 0 then task.wait() end
-                    if not done[o] then
-                        pcall(function()
-                            if isWindowFrame(o) then
-                                frameOnly(o, 3)
-                            elseif isTopbar(o) then
-                                paint(o, 2.5, 0.1)
-                            elseif isCard(o) then
-                                paint(o, 2.5, 0.2)
-                                for _, t in ipairs(o:GetDescendants()) do
-                                    if t:IsA("TextLabel") then text(t) end
-                                end
-                            elseif isTabButton(o) then
-                                paint(o, 2, 0.35)
-                                for _, t in ipairs(o:GetDescendants()) do
-                                    if t:IsA("TextLabel") then text(t) end
-                                end
-                            end
-                        end)
-                    end
-                end
-            end
-            task.wait(1.2)
-        end
-    end)
-end
+NaviHub:SetSize(UDim2.fromOffset(580, 460))
+pcall(function() NaviUI:SetTheme("Red") end)
 
 -- Notificaciones globales
 local function Notify(title, content, duration)
@@ -272,31 +56,29 @@ task.spawn(function()
     end
     if not bgImage then return end
     bgImage.Image = bgIds[1]
-    bgImage.ImageTransparency = 0.4
+    bgImage.ImageTransparency = 0.55
     local index = 1
     while true do
-        task.wait(3.5)
+        task.wait(5)
         index = index % #bgIds + 1
-        local tweenOut = TweenService:Create(bgImage, TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageTransparency = 1})
+        local tweenOut = TweenService:Create(bgImage, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageTransparency = 1})
         tweenOut:Play()
         tweenOut.Completed:Wait()
         bgImage.Image = bgIds[index]
-        local tweenIn = TweenService:Create(bgImage, TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {ImageTransparency = 0.4})
+        local tweenIn = TweenService:Create(bgImage, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {ImageTransparency = 0.55})
         tweenIn:Play()
     end
 end)
+local Home = NaviHub:Tab({ Title = "Inicio", Icon = "house" })
+local Aimbot = NaviHub:Tab({ Title = "Knife", Icon = "crosshair" })
+local Visuales = NaviHub:Tab({ Title = "Hitbox", Icon = "eye" })
+local Movimiento = NaviHub:Tab({ Title = "Parkour", Icon = "person-standing" })
+local Animaciones = NaviHub:Tab({ Title = "Style", Icon = "footprints" })
+local AutoFarm = NaviHub:Tab({ Title = "Grinder", Icon = "coins" })
+local AutoKills = NaviHub:Tab({ Title = "Eliminator", Icon = "skull" })
 
-local Home = NaviHub:Tab({ Title = "◇ HOME", Icon = "house" })
-local Aimbot = NaviHub:Tab({ Title = "⟡ SHOTS", Icon = "crosshair" })
-local Visuales = NaviHub:Tab({ Title = "◉ VISUAL", Icon = "eye" })
-local Movimiento = NaviHub:Tab({ Title = "⇅ MOV", Icon = "person-standing" })
-local Animaciones = NaviHub:Tab({ Title = "✧ SKIN", Icon = "footprints" })
-local AutoFarm = NaviHub:Tab({ Title = "◈ GRIND", Icon = "coins" })
-local AutoKills = NaviHub:Tab({ Title = "☠ KILL", Icon = "skull" })
-local Settings = NaviHub:Tab({ Title = "⚙ CFG", Icon = "settings" })
-
--- ========== AUTO FARM ==========
-AutoFarm:Section({ Title = "GRINDER", Icon = "coins", Opened = true })
+-- ========== AUTO FARM (contenido real) ==========
+AutoFarm:Section({ Title = "Grinder", Icon = "coins", Opened = true })
 
 local autoFarmEnabled = false
 local autoFarmSpeed = 22
@@ -313,7 +95,7 @@ AutoFarm:Toggle({
             task.spawn(function()
                 while autoFarmEnabled do
                     task.wait(0.2)
-                    pcall(function()
+                    local success, err = pcall(function()
                         local Players = game:GetService("Players")
                         local LP = Players.LocalPlayer
                         local char = LP.Character
@@ -400,8 +182,8 @@ AutoFarm:Paragraph({
     Title = "Info",
     Desc = "Farm Auto se mueve hacia el enemigo más cercano. Auto Collect intenta tocar monedas/orbs cercanos si existen en el mapa."
 })
-
-Settings:Section({ Title = "CONFIG", Icon = "settings" })
+local Settings = NaviHub:Tab({ Title = "Config", Icon = "settings" })
+Settings:Section({ Title = "Config", Icon = "settings" })
 local reviewText = ""
 Settings:Input({
     Title = "ESCRIBE TU COMENTARIO",
@@ -417,33 +199,6 @@ Settings:Button({
         local data = { username = "Navi", embeds = {{ title = "NUEVO COMENTARIO", description = reviewText, fields = {{name="USER", value=game.Players.LocalPlayer.Name}} }} }
         local req = request or http_request or (syn and syn.request)
         if req then req({ Url = webhookUrl, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = HttpService:JSONEncode(data) }) end
-    end
-})
-
--- ========== APARIENCIA / RGB ==========
-Settings:Section({ Title = "NEON CHAOS", Icon = "palette", Opened = true })
-
-local rgbUiOn = true
-local rgbUiSpeed = 1
-
-Settings:Toggle({
-    Title = "RGB UI",
-    Icon = "sparkles",
-    Default = true,
-    Callback = function(v)
-        rgbUiOn = v
-        if getgenv().NaviRGB then getgenv().NaviRGB.SetEnabled(v) end
-    end
-})
-
-Settings:Slider({
-    Title = "VELOCIDAD RGB",
-    Icon = "gauge",
-    Value = { Min = 0.2, Max = 4, Default = 1 },
-    Step = 0.1,
-    Callback = function(v)
-        rgbUiSpeed = v
-        if getgenv().NaviRGB then getgenv().NaviRGB.SetSpeed(v) end
     end
 })
 
@@ -547,7 +302,6 @@ Settings:Toggle({
         end
     end
 })
-
 local telaFFConn = nil
 local telaFFOn = false
 local telaForce = 1.4
@@ -587,6 +341,7 @@ Settings:Slider({
     Icon = "move",
     Value = { Min = 0.2, Max = 3, Default = 1.4 },
     Callback = function(v) telaForce = v end
+
 })
 
 local telaLejosConn = nil
@@ -630,6 +385,7 @@ Settings:Slider({
     Icon = "move",
     Value = { Min = 0.5, Max = 4, Default = 2.2 },
     Callback = function(v) lejosForce = v end
+
 })
 
 local spinConn = nil
@@ -645,7 +401,7 @@ Settings:Toggle({
         local LP = game.Players.LocalPlayer
         local RS = game:GetService("RunService")
         if Value then
-            spinConn = RS.RenderStepped:Connect(function()
+            spinConn = RS.RenderStepped:Connect(function(dt)
                 if not spinOn then return end
                 local char = LP.Character
                 if not char then return end
@@ -664,6 +420,7 @@ Settings:Slider({
     Icon = "zap",
     Value = { Min = 5, Max = 100, Default = 30 },
     Callback = function(v) spinSpeed = v end
+
 })
 
 do
@@ -756,7 +513,7 @@ do
         ringModel = Instance.new("Model")
         ringModel.Name = "UltraInstinctRing"
         ringModel.Parent = Workspace
-
+        
         local SEGMENTS = 36
         for i=1,SEGMENTS do
             local angle = (i-1)*(2*math.pi/SEGMENTS)
@@ -764,12 +521,12 @@ do
             local seg = Instance.new("Part")
             seg.Anchored = true
             seg.CanCollide = false
-            seg.Size = Vector3.new(0.15, 0.12, 1.1)
+            seg.Size = Vector3.new(0.15, 0.12, 1.1) -- CORTA
             seg.Material = Enum.Material.Neon
             seg.Color = Color3.fromRGB(0, 230, 255)
             seg.Transparency = 0.05
             seg.Parent = ringModel
-
+            
             local light = Instance.new("PointLight")
             light.Color = Color3.fromRGB(0,200,255)
             light.Range = 3
@@ -779,7 +536,7 @@ do
 
             local pos = char.PrimaryPart.Position + Vector3.new(math.cos(angle)*radius, 0.08, math.sin(angle)*radius)
             seg.CFrame = CFrame.new(pos) * CFrame.Angles(0, -angle, 0)
-
+            
             if i % 2 == 0 then
                 local segInner = Instance.new("Part")
                 segInner.Anchored = true
@@ -793,7 +550,7 @@ do
                 segInner.CFrame = CFrame.new(pos2) * CFrame.Angles(0, -angle, 0)
                 table.insert(segmentParts, segInner)
             end
-
+            
             table.insert(segmentParts, seg)
         end
 
@@ -801,10 +558,11 @@ do
             if isLobby() then return end
             if not LocalPlayer.Character or not LocalPlayer.Character.PrimaryPart then return end
             local centerPos = LocalPlayer.Character.PrimaryPart.Position
-
+            
             local spin = tick() * 0.8
             for idx,seg in ipairs(segmentParts) do
                 if seg and seg.Parent then
+                    local baseIndex = math.ceil(idx/1.5)
                     local isInner = seg.Size.Z < 0.7
                     local r = isInner and ultraRadius-0.5 or ultraRadius
                     local angle = ((idx-1)*(2*math.pi/36)) + (isInner and 0 or spin*0.1)
@@ -856,7 +614,7 @@ do
         end
     })
 
-    Settings:Slider({
+  Settings:Slider({
         Title = "RADIO",
         Icon = "circle",
         Value = { Min = 5, Max = 50, Default = 20 },
@@ -870,8 +628,8 @@ end
 Settings:Dropdown({
     Title = "TEMA",
     Icon = "palette",
-    Values = {"OnyxRGB", "Dark", "Light", "Midnight", "Red", "Rose", "Indigo", "Amber", "Violet", "Emerald"},
-    Value = themeOk and "OnyxRGB" or "Red",
+    Values = {"Dark", "Light", "Midnight", "Red", "Rose", "Indigo", "Amber", "Violet", "Emerald"},
+    Value = "Red",
     Callback = function(v)
         pcall(function() NaviUI:SetTheme(v) end)
     end
@@ -910,6 +668,8 @@ Settings:Button({
     end
 })
 
+
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local MarketplaceService = game:GetService("MarketplaceService")
@@ -935,35 +695,6 @@ local skeletonESPEnabled = false
 local skeletonESPColor = Color3.fromRGB(0, 255, 170)
 local activeSkeletons = {}
 local serverDeadCharacters = setmetatable({}, { __mode = "k" })
-
--- ========== CICLADOR DE COLORES ESP (cada enemigo cambia solo, 1-2s) ==========
-local espCycleEnabled = true
-local espCycleMin = 1.0
-local espCycleMax = 2.0
-local ESP_PALETTE = {
-    Color3.fromRGB(255, 0, 90),   Color3.fromRGB(255, 60, 0),
-    Color3.fromRGB(255, 200, 0),  Color3.fromRGB(160, 255, 0),
-    Color3.fromRGB(0, 255, 110),  Color3.fromRGB(0, 255, 220),
-    Color3.fromRGB(0, 170, 255),  Color3.fromRGB(70, 90, 255),
-    Color3.fromRGB(160, 0, 255),  Color3.fromRGB(255, 0, 220),
-    Color3.fromRGB(255, 255, 255),
-}
-local espColorState = {}
-
-local function enemyEspColor(p)
-    if not espCycleEnabled then return espColor end
-    local now = os.clock()
-    local e = espColorState[p]
-    if not e or now >= e.nextAt then
-        e = {
-            color = ESP_PALETTE[math.random(#ESP_PALETTE)],
-            nextAt = now + (espCycleMin + math.random() * (espCycleMax - espCycleMin)),
-        }
-        espColorState[p] = e
-    end
-    return e.color
-end
-
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "Navi"
 screenGui.ResetOnSpawn = false
@@ -973,7 +704,6 @@ screenGui.Parent = LP:WaitForChild("PlayerGui")
 local espFolder = Instance.new("Folder")
 espFolder.Name = "Navi"
 espFolder.Parent = screenGui
-
 local isEnemy, estaEnLobby, IsInMatchStrict
 local esEnemigoValido, esCuchillo, esPistola
 local startTargetMonitor
@@ -1224,39 +954,39 @@ Aimbot:Toggle({
         autoShootEnabled = v
     end
 })
-Aimbot:Toggle({ Title = "SHOT NORMAL", Value = false, Callback = function(v)
-    autoShootEnabled = v
-    if not v and not autoShootAgresivoEnabled then getgenv().NaviTargetPart = nil end
+Aimbot:Toggle({ Title = "SHOT NORMAL", Value = false, Callback = function(v) 
+    autoShootEnabled = v 
+    if not v and not autoShootAgresivoEnabled then getgenv().NaviTargetPart = nil end 
     Notify("Navi Hub", v and "Auto Shoot Normal ACTIVADO" or "Auto Shoot Normal DESACTIVADO")
 end })
-Aimbot:Toggle({ Title = "SHOT AGRESIVO", Value = false, Callback = function(v)
-    autoShootAgresivoEnabled = v
-    if not v and not autoShootEnabled then getgenv().NaviTargetPart = nil end
+Aimbot:Toggle({ Title = "SHOT AGRESIVO", Value = false, Callback = function(v) 
+    autoShootAgresivoEnabled = v 
+    if not v and not autoShootEnabled then getgenv().NaviTargetPart = nil end 
     Notify("Navi Hub", v and "Auto Shoot Agresivo ACTIVADO" or "Auto Shoot Agresivo DESACTIVADO")
 end })
 Aimbot:Dropdown({ Title = "TARGET PARTE", Values = {"Cabeza","Torso","Cuerpo Completo"}, Value = "Cabeza", Callback = function(v) autoShootTargetPart = v end })
 Aimbot:Section({ Title = "SILENT + FOV", Icon = "radar" })
-Aimbot:Toggle({ Title = "SILENT", Value = false, Callback = function(v)
-    silentAimManualEnabled = v
-    if not v and not autoShootEnabled and not autoShootAgresivoEnabled then getgenv().NaviTargetPart = nil end
+Aimbot:Toggle({ Title = "SILENT", Value = false, Callback = function(v) 
+    silentAimManualEnabled = v 
+    if not v and not autoShootEnabled and not autoShootAgresivoEnabled then getgenv().NaviTargetPart = nil end 
     Notify("Navi Hub", v and "Silent Aim ACTIVADO" or "Silent Aim DESACTIVADO")
 end })
 Aimbot:Dropdown({ Title = "TARGET", Values = {"Cabeza","Torso","Cuerpo Completo"}, Value = "Cabeza", Callback = function(v) silentAimTargetPart = v end })
-Aimbot:Toggle({ Title = "SILENT FOV", Value = false, Callback = function(v)
-    silentAimFovEnabled = v
-    if not v and not silentAimManualEnabled and not autoShootEnabled and not autoShootAgresivoEnabled then getgenv().NaviTargetPart = nil end
+Aimbot:Toggle({ Title = "SILENT FOV", Value = false, Callback = function(v) 
+    silentAimFovEnabled = v 
+    if not v and not silentAimManualEnabled and not autoShootEnabled and not autoShootAgresivoEnabled then getgenv().NaviTargetPart = nil end 
     Notify("Navi Hub", v and "Silent Aim FOV ACTIVADO" or "Silent Aim FOV DESACTIVADO")
 end })
 Aimbot:Toggle({ Title = "MOSTRAR FOV", Value = false, Callback = function(v) fovVisiblePreference = v end })
 Aimbot:Slider({ Title = "TAMAÑO DEL FOV", Value = { Min = 10, Max = 800, Default = 120 }, Callback = function(v) fovRadius = v end })
-Aimbot:Toggle({ Title = "EQUIP WEAPON", Value = false, Callback = function(v)
-    autoSacarArmaEnabled = v
+Aimbot:Toggle({ Title = "EQUIP WEAPON", Value = false, Callback = function(v) 
+    autoSacarArmaEnabled = v 
     Notify("Navi Hub", v and "Auto Sacar Arma ACTIVADO" or "Auto Sacar Arma DESACTIVADO")
 end })
 
--- ========== AUTO SHOT FAKED ==========
+-- ========== AUTO SHOT FAKED (disimulado) ==========
 local autoShotFakedEnabled = false
-local fakedShotState = 0
+local fakedShotState = 0 -- 0 = idle, 1 = fake aim, 2 = real shot
 local fakedOffset = Vector3.new(2.5, 1.2, 0)
 
 Aimbot:Section({ Title = "SHOT FAKED", Icon = "crosshair" })
@@ -1319,6 +1049,7 @@ task.spawn(function()
 
         if closestPart then
             if fakedShotState == 0 or fakedShotState == 2 then
+                -- Fake aim: offset position
                 local fakePart = Instance.new("Part")
                 fakePart.Name = "NaviFakeTarget"
                 fakePart.Size = Vector3.new(0.2, 0.2, 0.2)
@@ -1338,6 +1069,7 @@ task.spawn(function()
                 end)
                 task.wait(0.15)
             else
+                -- Real shot
                 getgenv().NaviTargetPart = closestPart
                 fakedShotState = 2
                 pcall(function()
@@ -1450,13 +1182,12 @@ Movimiento:Toggle({
         pad.Size = UDim2.fromOffset(128,185)
         pad.AnchorPoint = Vector2.new(0.5,0.5)
         pad.Position = UDim2.fromScale(0.5,0.65)
-        pad.BackgroundColor3 = Color3.fromRGB(255,255,255)
-        pad.BackgroundTransparency = 0.35
-        Instance.new("UICorner", pad).CornerRadius = UDim.new(0,18)
+        pad.BackgroundColor3 = Color3.fromRGB(10,25,75)
+        pad.BackgroundTransparency = 0.3
+        Instance.new("UICorner", pad).CornerRadius = UDim.new(0,16)
         local stroke = Instance.new("UIStroke", pad)
-        stroke.Color = Color3.fromRGB(255,255,255)
-        stroke.Thickness = 2.5
-        if getgenv().NaviRGB then getgenv().NaviRGB.Animate(Instance.new("UIGradient", stroke)) end
+        stroke.Color = Color3.fromRGB(70,130,255)
+        stroke.Thickness = 2
         pad.Active = true
         pad.Draggable = true
         local function crearAzul(pos, txt, sx, sy, name)
@@ -1468,22 +1199,12 @@ Movimiento:Toggle({
             b.TextScaled = true
             b.Font = Enum.Font.GothamBold
             b.TextColor3 = Color3.new(1,1,1)
-            b.BackgroundColor3 = Color3.fromRGB(255,255,255)
-            b.BackgroundTransparency = 0.2
+            b.BackgroundColor3 = Color3.fromRGB(15,35,90)
             b.AutoButtonColor = false
-            Instance.new("UICorner", b).CornerRadius = UDim.new(0,9)
+            Instance.new("UICorner", b).CornerRadius = UDim.new(0,8)
             local grad = Instance.new("UIGradient", b)
-            if getgenv().NaviRGB then
-                getgenv().NaviRGB.Animate(grad)
-                local bs = Instance.new("UIStroke", b)
-                bs.Thickness = 2
-                bs.Color = Color3.fromRGB(0,0,0)
-                bs.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-                getgenv().NaviRGB.Animate(Instance.new("UIGradient", bs))
-            else
-                grad.Color = ColorSequence.new(Color3.fromRGB(60,110,230), Color3.fromRGB(15,35,110))
-                grad.Rotation = 90
-            end
+            grad.Color = ColorSequence.new(Color3.fromRGB(60,110,230), Color3.fromRGB(15,35,110))
+            grad.Rotation = 90
             return b
         end
         local up = crearAzul(UDim2.fromOffset(49,8), "▲", 30, 30, "Navi")
@@ -1494,6 +1215,8 @@ Movimiento:Toggle({
         local downV = crearAzul(UDim2.fromOffset(88,110), "⬇", 30, 30, "Navi")
         local bajar = crearAzul(UDim2.fromOffset(6,148), "BAJAR", 54, 28, "Navi")
         local subir = crearAzul(UDim2.fromOffset(68,148), "SUBIR", 54, 28, "Navi")
+        bajar.BackgroundColor3 = Color3.fromRGB(25,35,75)
+        subir.BackgroundColor3 = Color3.fromRGB(20,55,120)
         local function estaEnPartida()
             local rs = game:GetService("ReplicatedStorage")
             if rs:FindFirstChild("GameInProgress") or rs:FindFirstChild("InGame") then
@@ -1612,6 +1335,7 @@ Movimiento:Toggle({
         end)
     end
 })
+
 
 task.spawn(function()
     local params = RaycastParams.new()
@@ -1748,74 +1472,20 @@ end
 for _, p in ipairs(Players:GetPlayers()) do if p ~= LP then if p.Character then WatchServerDeath(p.Character) end p.CharacterAdded:Connect(function(c) WatchServerDeath(c) end) end end
 Players.PlayerAdded:Connect(function(p) if p ~= LP then if p.Character then WatchServerDeath(p.Character) end p.CharacterAdded:Connect(function(c) WatchServerDeath(c) end) end end)
 Visuales:Section({ Title = "Visuales", Icon = "eye", Opened = true })
-Visuales:Toggle({ Title = "HIGHLIGHT", Value = false, Callback = function(s)
-    espEnabled = s
-    if not s then
-        for _, p in pairs(Players:GetPlayers()) do
-            local h = espFolder:FindFirstChild(p.Name .. "Navi")
-            if h then h:Destroy() end
-            activeESPs[p] = nil
-            espColorState[p] = nil
-        end
-    end
+Visuales:Toggle({ Title = "HIGHLIGHT", Value = false, Callback = function(s) 
+    espEnabled = s 
+    if not s then 
+        for _, p in pairs(Players:GetPlayers()) do 
+            local h = espFolder:FindFirstChild(p.Name .. "Navi") 
+            if h then h:Destroy() end 
+            activeESPs[p] = nil 
+        end 
+    end 
     Notify("Navi Hub", s and "ESP Highlight ACTIVADO" or "ESP Highlight DESACTIVADO")
 end })
+Visuales:Colorpicker({ Title = "COLOR HIGHLIGHT", Default = Color3.fromRGB(255, 0, 0), Callback = function(c) espColor = c for _, v in pairs(activeESPs) do if v.Highlight then v.Highlight.FillColor = c end end end })
 
-Visuales:Section({ Title = "COLOR ESP", Icon = "rainbow" })
-
-Visuales:Toggle({
-    Title = "ESP ARCOIRIS",
-    Icon = "sparkles",
-    Default = true,
-    Callback = function(v)
-        espCycleEnabled = v
-        if v then
-            Notify("Navi Hub", "ESP cambia de color cada 1-2s")
-        else
-            Notify("Navi Hub", "ESP con color fijo")
-            for _, v2 in pairs(activeESPs) do
-                if v2.Highlight then
-                    pcall(function()
-                        v2.Highlight.FillColor = espColor
-                        v2.Highlight.OutlineColor = espColor
-                    end)
-                end
-            end
-        end
-    end
-})
-
-Visuales:Slider({
-    Title = "MIN SEGUNDOS",
-    Icon = "timer",
-    Value = { Min = 0.3, Max = 3, Default = 1.0 },
-    Step = 0.1,
-    Callback = function(v) espCycleMin = v end
-})
-
-Visuales:Slider({
-    Title = "MAX SEGUNDOS",
-    Icon = "timer",
-    Value = { Min = 0.3, Max = 5, Default = 2.0 },
-    Step = 0.1,
-    Callback = function(v) espCycleMax = v end
-})
-
-Visuales:Colorpicker({ Title = "COLOR FIJO ESP", Default = Color3.fromRGB(255, 0, 0), Callback = function(c)
-    espColor = c
-    if not espCycleEnabled then
-        for _, v in pairs(activeESPs) do
-            if v.Highlight then
-                pcall(function()
-                    v.Highlight.FillColor = c
-                    v.Highlight.OutlineColor = c
-                end)
-            end
-        end
-    end
-end })
-
--- ========== ESP ESQUELETO (Drawing) ==========
+-- ========== ESP ESQUELETO (Drawing - método Universal) ==========
 local HAS_DRAWING = Drawing ~= nil and Drawing.new ~= nil
 local SkelR15 = {
     {"Head","UpperTorso"},{"UpperTorso","LowerTorso"},
@@ -1827,7 +1497,7 @@ local SkelR15 = {
 local SkelR6 = {
     {"Head","Torso"},{"Torso","Left Arm"},{"Torso","Right Arm"},{"Torso","Left Leg"},{"Torso","Right Leg"},
 }
-local SkelCache = {}
+local SkelCache = {} -- [player] = {Lines = {Drawing.Line, ...}}
 
 local function clearSkeleton(plr)
     local e = SkelCache[plr]
@@ -1869,18 +1539,21 @@ Visuales:Colorpicker({
     end
 })
 
+-- Loop de Skeleton con Drawing
 if HAS_DRAWING then
     game:GetService("RunService").RenderStepped:Connect(function()
         if not skeletonESPEnabled then
             for plr in pairs(SkelCache) do clearSkeleton(plr) end
             return
         end
+        local Players = game:GetService("Players")
+        local LocalPlayer = Players.LocalPlayer
         local cam = workspace.CurrentCamera
         if not cam then return end
 
         local seen = {}
         for _, plr in ipairs(Players:GetPlayers()) do
-            if plr ~= LP then
+            if plr ~= LocalPlayer then
                 local char = plr.Character
                 local hum = char and char:FindFirstChildOfClass("Humanoid")
                 local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -1893,7 +1566,6 @@ if HAS_DRAWING then
                         seen[plr] = true
                         local e = getSkelEntry(plr)
                         local list = (hum.RigType == Enum.HumanoidRigType.R15) and SkelR15 or SkelR6
-                        local col = enemyEspColor(plr)
                         for i, pair in ipairs(list) do
                             local line = e.Lines[i]
                             if not line then
@@ -1905,12 +1577,12 @@ if HAS_DRAWING then
                             local a = char:FindFirstChild(pair[1])
                             local b = char:FindFirstChild(pair[2])
                             if a and b then
-                                local pa = cam:WorldToViewportPoint(a.Position)
-                                local pb = cam:WorldToViewportPoint(b.Position)
+                                local pa, ona = cam:WorldToViewportPoint(a.Position)
+                                local pb, onb = cam:WorldToViewportPoint(b.Position)
                                 if pa.Z > 0 and pb.Z > 0 then
                                     line.From = Vector2.new(pa.X, pa.Y)
                                     line.To = Vector2.new(pb.X, pb.Y)
-                                    line.Color = espCycleEnabled and col or skeletonESPColor
+                                    line.Color = skeletonESPColor
                                     line.Visible = true
                                 else
                                     line.Visible = false
@@ -1919,6 +1591,7 @@ if HAS_DRAWING then
                                 line.Visible = false
                             end
                         end
+                        -- hide extra lines
                         for i = #list + 1, #e.Lines do
                             if e.Lines[i] then e.Lines[i].Visible = false end
                         end
@@ -1926,6 +1599,7 @@ if HAS_DRAWING then
                 end
             end
         end
+        -- cleanup players that left or no longer valid
         for plr in pairs(SkelCache) do
             if not seen[plr] then
                 clearSkeleton(plr)
@@ -1933,6 +1607,7 @@ if HAS_DRAWING then
         end
     end)
 else
+    -- Fallback message if no Drawing library
     Visuales:Paragraph({
         Title = "Skeleton no disponible",
         Desc = "Tu executor no soporta Drawing library. El Skeleton ESP no funcionará."
@@ -1949,25 +1624,21 @@ task.spawn(function()
                     if char and not dead and char:FindFirstChild("Head") and esEnemigoValido(p) then
                         local dist = myPos and (char.Head.Position - myPos).Magnitude or 0
                         if dist <= MAX_ESP_DISTANCE then
-                            local col = enemyEspColor(p)
                             if activeESPs[p] and activeESPs[p].Char ~= char then cleanESP(p) end
                             if not activeESPs[p] then
                                 local highlight = Instance.new("Highlight")
                                 highlight.Name = p.Name .. "Navi"
-                                highlight.FillTransparency = 0.55
-                                highlight.OutlineTransparency = 0
+                                highlight.FillTransparency = 0.6
+                                highlight.OutlineTransparency = 1
                                 highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                                highlight.FillColor = col
-                                highlight.OutlineColor = col
+                                highlight.FillColor = espColor
+                                highlight.OutlineColor = espColor
                                 highlight.Adornee = char
                                 highlight.Parent = espFolder
                                 activeESPs[p] = { Highlight = highlight, Char = char }
                             end
                             local espObj = activeESPs[p]
-                            if espObj.Highlight.FillColor ~= col then
-                                espObj.Highlight.FillColor = col
-                                espObj.Highlight.OutlineColor = col
-                            end
+                            if espObj.Highlight.FillColor ~= espColor then espObj.Highlight.FillColor = espColor espObj.Highlight.OutlineColor = espColor end
                         else cleanESP(p) end
                     else cleanESP(p) end
                 end
@@ -1997,8 +1668,7 @@ RunService.RenderStepped:Connect(function()
         FOVCircle.Visible = false
     end
 end)
-Players.PlayerRemoving:Connect(function(p) cleanESP(p) clearSkeleton(p) espColorState[p] = nil end)
-
+Players.PlayerRemoving:Connect(function(p) cleanESP(p) clearSkeleton(p) end)
 local AllPacks = {
     Astronaut = { idle1= "rbxassetid://891621366", idle2="rbxassetid://891633237", walk="rbxassetid://891667138", run="rbxassetid://891636393", jump="rbxassetid://891627522", fall="rbxassetid://891617961" },
     Bubbly = { idle1="rbxassetid://910004836", idle2="rbxassetid://910009958", walk="rbxassetid://910034870", run="rbxassetid://910025107", jump="rbxassetid://910016857", fall="rbxassetid://910001910" },
@@ -2140,7 +1810,6 @@ local hitboxEnabled = false
 local hitboxInvisible = false
 local hitboxSize = 3.5
 local hitboxColor = Color3.fromRGB(255, 0, 0)
-local hitboxCycle = true
 
 local function limpiarHitboxes()
     for _, targetPlayer in ipairs(Players:GetPlayers()) do
@@ -2165,12 +1834,6 @@ Visuales:Toggle({
     Title = "HITBOX [INVISIBLE]",
     Value = false,
     Callback = function(Value) hitboxInvisible = Value end
-})
-
-Visuales:Toggle({
-    Title = "HITBOX ARCOIRIS",
-    Value = true,
-    Callback = function(Value) hitboxCycle = Value end
 })
 
 Visuales:Slider({
@@ -2201,7 +1864,6 @@ task.spawn(function()
                 if character then
                     local rootPart = character:FindFirstChild("HumanoidRootPart")
                     local humanoid = character:FindFirstChildOfClass("Humanoid")
-                    local colorObjetivo = hitboxCycle and enemyEspColor(targetPlayer) or hitboxColor
                     if rootPart and humanoid and humanoid.Health > 0 then
                         local hitbox = character:FindFirstChild("Navi_HITBOX")
                         if not hitbox then
@@ -2209,8 +1871,7 @@ task.spawn(function()
                             hitbox.Name = "Navi_HITBOX"
                             hitbox.Size = tamanoObjetivo
                             hitbox.Transparency = transObjetivo
-                            hitbox.Color = colorObjetivo
-                            hitbox.Material = Enum.Material.Neon
+                            hitbox.Color = hitboxColor
                             hitbox.CanCollide = false
                             hitbox.Massless = true
                             hitbox.CanQuery = true
@@ -2223,7 +1884,7 @@ task.spawn(function()
                         else
                             if hitbox.Size ~= tamanoObjetivo then hitbox.Size = tamanoObjetivo end
                             if hitbox.Transparency ~= transObjetivo then hitbox.Transparency = transObjetivo end
-                            if hitbox.Color ~= colorObjetivo then hitbox.Color = colorObjetivo end
+                            if hitbox.Color ~= hitboxColor then hitbox.Color = hitboxColor end
                             if not hitbox.CanQuery then hitbox.CanQuery = true end
                         end
                     else
@@ -2241,7 +1902,7 @@ task.spawn(function()
         end
     end
 end)
-
+ 
 Settings:Section({ Title = "MODO STREAMER", Icon = "user-x" })
 
 local spoofNameText = "Navi"
@@ -2255,17 +1916,17 @@ end
 local function processText(v, myName, myDisp)
     local parentGui = v:FindFirstAncestorWhichIsA("ScreenGui")
     if parentGui and (string.find(parentGui.Name, "WindUI") or string.find(parentGui.Name, "Navi")) then return end
-
+    
     if v:IsA("TextLabel") or v:IsA("TextBox") or v:IsA("TextButton") then
         local txt = v.Text
         local hasName = false
-
+        
         if txt and txt ~= "" then
             if string.find(txt, myName, 1, true) or string.find(txt, myDisp, 1, true) then
                 hasName = true
             end
         end
-
+        
         if hasName then
             v.RichText = true
             local newText = safeReplace(v.Text, myName, spoofNameText)
@@ -2326,7 +1987,9 @@ local KillSounds = {
     { Name = "AGÁRRATE DOMIDIOS",        Id = "132837271823305" },
     { Name = "MAMBO",    Id =  "131928826207735" },
     { Name = "SUAVE SUAVE",         Id = "107166596193919" },
+
     { Name = "ESTRELLA",          Id = "109296938403067" },
+
 }
 
 local KillSoundPlayer = Instance.new("Sound")
@@ -2435,5 +2098,3 @@ AutoKills:Slider({
         KillSoundPlayer.Volume = v
     end
 })
-
-Notify("Navi Hub", "Interfaz cargada en modo NEON CHAOS")
