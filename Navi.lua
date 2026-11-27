@@ -1,5 +1,86 @@
 
 local _version = "1.6.66"
+
+-- ========== LOADING BANNER + CIELO ==========
+do
+    local Players = game:GetService("Players")
+    local LP = Players.LocalPlayer
+    local PlayerGui = LP:WaitForChild("PlayerGui")
+
+    -- Cielo nuevo
+    pcall(function()
+        local Lighting = game:GetService("Lighting")
+        local sky = Lighting:FindFirstChildOfClass("Sky")
+        if not sky then
+            sky = Instance.new("Sky")
+            sky.Parent = Lighting
+        end
+        local id = "rbxassetid://105902691001573"
+        sky.SkyboxBk = id
+        sky.SkyboxDn = id
+        sky.SkyboxFt = id
+        sky.SkyboxLf = id
+        sky.SkyboxRt = id
+        sky.SkyboxUp = id
+    end)
+
+    -- Banner de carga a pantalla completa
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "NaviLoading"
+    gui.IgnoreGuiInset = true
+    gui.DisplayOrder = 99999
+    gui.ResetOnSpawn = false
+    gui.Parent = PlayerGui
+
+    local bg = Instance.new("Frame")
+    bg.Size = UDim2.fromScale(1, 1)
+    bg.BackgroundColor3 = Color3.fromRGB(10, 5, 5)
+    bg.BorderSizePixel = 0
+    bg.Parent = gui
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 60)
+    title.Position = UDim2.new(0, 0, 0.42, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "Cargando script..."
+    title.TextColor3 = Color3.fromRGB(255, 60, 60)
+    title.TextScaled = true
+    title.Font = Enum.Font.GothamBold
+    title.Parent = bg
+
+    local sub = Instance.new("TextLabel")
+    sub.Size = UDim2.new(1, 0, 0, 30)
+    sub.Position = UDim2.new(0, 0, 0.52, 0)
+    sub.BackgroundTransparency = 1
+    sub.Text = "Onyx Hub • By Navi"
+    sub.TextColor3 = Color3.fromRGB(200, 200, 200)
+    sub.TextScaled = true
+    sub.Font = Enum.Font.Gotham
+    sub.Parent = bg
+
+    local barBg = Instance.new("Frame")
+    barBg.Size = UDim2.new(0.5, 0, 0, 8)
+    barBg.Position = UDim2.new(0.25, 0, 0.62, 0)
+    barBg.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+    barBg.BorderSizePixel = 0
+    barBg.Parent = bg
+    Instance.new("UICorner", barBg).CornerRadius = UDim.new(1, 0)
+
+    local bar = Instance.new("Frame")
+    bar.Size = UDim2.new(0, 0, 1, 0)
+    bar.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    bar.BorderSizePixel = 0
+    bar.Parent = barBg
+    Instance.new("UICorner", bar).CornerRadius = UDim.new(1, 0)
+
+    local TweenService = game:GetService("TweenService")
+    local tween = TweenService:Create(bar, TweenInfo.new(5, Enum.EasingStyle.Quad), {Size = UDim2.new(1, 0, 1, 0)})
+    tween:Play()
+    tween.Completed:Wait()
+    task.wait(0.35)
+    gui:Destroy()
+end
+
 local NaviUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/download/" .. _version .. "/main.lua"))()
 local NaviHub =
 NaviUI:CreateWindow({
@@ -946,25 +1027,35 @@ Home:Paragraph({ Title = "EXECUTOR", Desc = "Ejecutor actual: "..getExecutor() }
 Home:Section({ Title = "Información del Servidor", Icon = "server", Opened = true })
 Home:Paragraph({ Title = "Juego Actual", Desc = getGameName().."\nPlace ID: "..game.PlaceId, Image = gameThumb, ImageSize = 60 })
 Aimbot:Section({ Title = "SHOTS", Icon = "target" })
+
+local autoShotDelterEnabled = false
+
 Aimbot:Toggle({
-    Title = "ALTO FIRE [AGRESIVO]",
-    Value = false,
+    Title = "SHOT DELTER",
+    Icon = "zap",
+    Default = false,
     Callback = function(v)
-        altoFireEnabled = v
-        autoShootEnabled = v
+        autoShotDelterEnabled = v
+        if not v then getgenv().NaviTargetPart = nil end
+        Notify("Navi Hub", v and "SHOT DELTER ACTIVADO 🔥" or "SHOT DELTER DESACTIVADO")
     end
 })
+Aimbot:Paragraph({
+    Title = "Info Delter",
+    Desc = "Modo ultra agresivo para Deltas. Dispara solo, prioriza hitbox y atraviesa paredes."
+})
+
 Aimbot:Toggle({ Title = "SHOT NORMAL", Value = false, Callback = function(v) 
     autoShootEnabled = v 
-    if not v and not autoShootAgresivoEnabled then getgenv().NaviTargetPart = nil end 
-    Notify("Navi Hub", v and "Auto Shoot Normal ACTIVADO" or "Auto Shoot Normal DESACTIVADO")
+    if not v and not autoShootAgresivoEnabled and not autoShotDelterEnabled then getgenv().NaviTargetPart = nil end 
+    Notify("Navi Hub", v and "Shot Normal ACTIVADO" or "Shot Normal DESACTIVADO")
 end })
 Aimbot:Toggle({ Title = "SHOT AGRESIVO", Value = false, Callback = function(v) 
     autoShootAgresivoEnabled = v 
-    if not v and not autoShootEnabled then getgenv().NaviTargetPart = nil end 
-    Notify("Navi Hub", v and "Auto Shoot Agresivo ACTIVADO" or "Auto Shoot Agresivo DESACTIVADO")
+    if not v and not autoShootEnabled and not autoShotDelterEnabled then getgenv().NaviTargetPart = nil end 
+    Notify("Navi Hub", v and "Shot Agresivo ACTIVADO" or "Shot Agresivo DESACTIVADO")
 end })
-Aimbot:Dropdown({ Title = "TARGET PARTE", Values = {"Cabeza","Torso","Cuerpo Completo"}, Value = "Cabeza", Callback = function(v) autoShootTargetPart = v end })
+Aimbot:Dropdown({ Title = "TARGET PARTE", Values = {"Cabeza","Torso","Cuerpo Completo","Hitbox"}, Value = "Cabeza", Callback = function(v) autoShootTargetPart = v end })
 Aimbot:Section({ Title = "SILENT + FOV", Icon = "radar" })
 Aimbot:Toggle({ Title = "SILENT", Value = false, Callback = function(v) 
     silentAimManualEnabled = v 
@@ -1149,7 +1240,7 @@ Movimiento:Toggle({
 })
 
 Movimiento:Toggle({
-    Title = "FLY SPEED V1",
+    Title = "FLY SPEED V2",
     Default = false,
     Callback = function(state)
         local Players = game:GetService("Players")
@@ -1164,8 +1255,10 @@ Movimiento:Toggle({
             if lp.Character and lp.Character:FindFirstChildOfClass("Humanoid") then
                 lp.Character:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.GettingUp)
             end
+            Notify("Navi Hub", "Fly Speed V2 DESACTIVADO")
             return
         end
+        Notify("Navi Hub", "Fly Speed V2 ACTIVADO")
         if PlayerGui:FindFirstChild("Navi_FLYSPEED") then
             PlayerGui:FindFirstChild("Navi_FLYSPEED"):Destroy()
         end
@@ -1173,8 +1266,8 @@ Movimiento:Toggle({
         gui.Name = "Navi_FLYSPEED"
         gui.ResetOnSpawn = false
         gui.Parent = PlayerGui
-        local SPEED = 0.75
-        local V_SPEED = 1.1
+        local SPEED = 2.8          -- mucho más rápido (antes 0.75)
+        local V_SPEED = 3.2        -- vertical más fuerte (antes 1.1)
         local mov = {W=false,A=false,S=false,D=false,Up=false,Down=false}
         local presionando = false
         local pad = Instance.new("Frame", gui)
@@ -1284,12 +1377,12 @@ Movimiento:Toggle({
         conectar(upV,"Up")
         conectar(downV,"Down")
         bajar.MouseButton1Click:Connect(function()
-            SPEED = math.clamp(SPEED - 0.1, 0.2, 3)
-            V_SPEED = math.clamp(V_SPEED - 0.1, 0.2, 3)
+            SPEED = math.clamp(SPEED - 0.25, 0.5, 12)
+            V_SPEED = math.clamp(V_SPEED - 0.25, 0.5, 12)
         end)
         subir.MouseButton1Click:Connect(function()
-            SPEED = math.clamp(SPEED + 0.1, 0.2, 3)
-            V_SPEED = math.clamp(V_SPEED + 0.1, 0.2, 3)
+            SPEED = math.clamp(SPEED + 0.25, 0.5, 12)
+            V_SPEED = math.clamp(V_SPEED + 0.25, 0.5, 12)
         end)
         if _G.FlyCon1 then _G.FlyCon1:Disconnect() end
         if _G.FlyCon2 then _G.FlyCon2:Disconnect() end
@@ -1394,35 +1487,97 @@ if hookmetamethod and getnamecallmethod and checkcaller then
     end)
 end
 task.spawn(function()
-    local params = RaycastParams.new() params.FilterType = Enum.RaycastFilterType.Exclude
-    while task.wait(0.1) do
-        if (autoShootEnabled or autoShootAgresivoEnabled) and not estaEnLobby() then
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    while task.wait(0.025) do
+        local isDelter = autoShotDelterEnabled
+        local isNormal = autoShootEnabled or autoShootAgresivoEnabled
+
+        if (isDelter or isNormal) and not estaEnLobby() then
             local char = LP.Character
             if not char or not char:FindFirstChild("HumanoidRootPart") then continue end
             local arma = char:FindFirstChildOfClass("Tool")
             if not arma or not arma:FindFirstChild("Handle") then getgenv().NaviTargetPart = nil continue end
             if esCuchillo(arma) then getgenv().NaviTargetPart = nil continue end
-            local closestPart = nil local shortest = math.huge
-            local myPos = char.HumanoidRootPart.Position local headPos = char:FindFirstChild("Head") and char.Head.Position or myPos
+
+            local closestPart = nil
+            local shortest = math.huge
+            local myPos = char.HumanoidRootPart.Position
+            local headPos = char:FindFirstChild("Head") and char.Head.Position or myPos
+
             for _, p in pairs(Players:GetPlayers()) do
                 if p ~= LP and esEnemigoValido(p) then
-                    local enemyHum = p.Character and p.Character:FindFirstChild("Humanoid")
+                    local enemyChar = p.Character
+                    local enemyHum = enemyChar and enemyChar:FindFirstChildOfClass("Humanoid")
                     if enemyHum and enemyHum.Health > 0 then
-                        params.FilterDescendantsInstances = { char, p.Character }
-                        local function Proc(part)
+                        params.FilterDescendantsInstances = { char, enemyChar }
+
+                        local function Proc(part, ignoreWalls)
+                            if not part then return end
                             local d = (part.Position - myPos).Magnitude
                             if d < shortest then
-                                if not workspace:Raycast(headPos, part.Position - headPos, params) then shortest = d closestPart = part end
+                                if ignoreWalls or not workspace:Raycast(headPos, part.Position - headPos, params) then
+                                    shortest = d
+                                    closestPart = part
+                                end
                             end
                         end
-                        if autoShootAgresivoEnabled then for _, part in ipairs(p.Character:GetChildren()) do if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then Proc(part) end end
-                        elseif autoShootTargetPart == "Cabeza" then local h = p.Character:FindFirstChild("Head") if h then Proc(h) end
-                        elseif autoShootTargetPart == "Torso" then for _, n in ipairs({"UpperTorso","Torso","HumanoidRootPart"}) do local pt = p.Character:FindFirstChild(n) if pt then Proc(pt) end end
-                        else for _, part in ipairs(p.Character:GetChildren()) do if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then Proc(part) end end end
+
+                        if isDelter then
+                            -- DELTER: prioriza hitbox expandida + cualquier parte, ignora paredes
+                            local hb = enemyChar:FindFirstChild("Navi_HITBOX")
+                            if hb then Proc(hb, true) end
+                            for _, part in ipairs(enemyChar:GetChildren()) do
+                                if part:IsA("BasePart") then Proc(part, true) end
+                            end
+                        elseif autoShootAgresivoEnabled then
+                            for _, part in ipairs(enemyChar:GetChildren()) do
+                                if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                                    Proc(part, true)
+                                end
+                            end
+                        elseif autoShootTargetPart == "Hitbox" then
+                            local hb = enemyChar:FindFirstChild("Navi_HITBOX")
+                            if hb then Proc(hb, false) end
+                            local h = enemyChar:FindFirstChild("Head")
+                            if h then Proc(h, false) end
+                        elseif autoShootTargetPart == "Cabeza" then
+                            local h = enemyChar:FindFirstChild("Head")
+                            if h then Proc(h, false) end
+                        elseif autoShootTargetPart == "Torso" then
+                            for _, n in ipairs({"UpperTorso", "Torso", "HumanoidRootPart"}) do
+                                local pt = enemyChar:FindFirstChild(n)
+                                if pt then Proc(pt, false) end
+                            end
+                        else
+                            for _, part in ipairs(enemyChar:GetChildren()) do
+                                if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                                    Proc(part, false)
+                                end
+                            end
+                        end
                     end
                 end
             end
-            if closestPart then getgenv().NaviTargetPart = closestPart pcall(function() arma:Activate() task.delay(0.05, function() if arma.Parent == char then arma:Deactivate() end end) end) task.wait(0.2) else getgenv().NaviTargetPart = nil end
+
+            if closestPart then
+                getgenv().NaviTargetPart = closestPart
+                pcall(function()
+                    arma:Activate()
+                    task.delay(isDelter and 0.015 or 0.03, function()
+                        if arma.Parent == char then arma:Deactivate() end
+                    end)
+                end)
+                if isDelter then
+                    task.wait(0.03) -- spam rápido para delter
+                elseif autoShootAgresivoEnabled then
+                    task.wait(0.06)
+                else
+                    task.wait(0.1)
+                end
+            else
+                getgenv().NaviTargetPart = nil
+            end
         end
     end
 end)
@@ -1808,7 +1963,7 @@ Visuales:Section({ Title = "HITBOX ESPANDER", Icon = "solar:box-bold" })
 
 local hitboxEnabled = false
 local hitboxInvisible = false
-local hitboxSize = 3.5
+local hitboxSize = 6
 local hitboxColor = Color3.fromRGB(255, 0, 0)
 
 local function limpiarHitboxes()
@@ -1839,7 +1994,7 @@ Visuales:Toggle({
 Visuales:Slider({
     Title = "TAMAÑO",
     Step = 0.5,
-    Value = { Min = 1.0, Max = 18.0, Default = 3.5 },
+    Value = { Min = 1.0, Max = 40.0, Default = 6 },
     Callback = function(v) hitboxSize = v end
 })
 
