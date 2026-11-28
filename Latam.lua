@@ -3256,4 +3256,4 @@ appearanceSection:Colorpicker({
     end,
 })
 
-Window:SelectTab(1)
+Window:SelectTab(1) 
