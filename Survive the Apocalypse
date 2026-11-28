@@ -1,0 +1,294 @@
+--[[
+    Survive the Apocalypse - Simple Auto Farm + Object Logger
+    By Navi
+]]
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+local LP = Players.LocalPlayer
+local Character, Humanoid, RootPart
+
+local function updateChar()
+    Character = LP.Character or LP.CharacterAdded:Wait()
+    Humanoid = Character:WaitForChild("Humanoid")
+    RootPart = Character:WaitForChild("HumanoidRootPart")
+end
+updateChar()
+LP.CharacterAdded:Connect(updateChar)
+
+-- ==================== UI ====================
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+local Window = WindUI:CreateWindow({
+    Title = "Survive Apocalypse | Auto Farm",
+    Author = "By Navi",
+    Folder = "SurviveApocalypse",
+    Size = UDim2.fromOffset(480, 380),
+    Transparent = false,
+    Theme = "Dark",
+})
+
+local Main = Window:Tab({ Title = "Main", Icon = "box" })
+local Logger = Window:Tab({ Title = "Logger", Icon = "list" })
+local Settings = Window:Tab({ Title = "Settings", Icon = "settings" })
+
+-- ==================== VARIABLES ====================
+local autoFarm = false
+local farmSpeed = 22
+local openDelay = 0.6
+local maxDistance = 120
+local onlyVisible = false
+
+local knownNames = {
+    "crate", "box", "chest", "loot", "supply", "container",
+    "cache", "drop", "package", "storage", "case", "trunk"
+}
+
+-- ==================== HELPERS ====================
+local function notify(title, text)
+    pcall(function()
+        WindUI:Notify({
+            Title = title or "Survive Farm",
+            Content = text or "",
+            Duration = 3
+        })
+    end)
+end
+
+local function isCrate(obj)
+    if not obj or not obj:IsA("BasePart") and not obj:IsA("Model") then return false end
+    local name = string.lower(obj.Name)
+    for _, key in ipairs(knownNames) do
+        if string.find(name, key) then return true end
+    end
+    -- también busca ProximityPrompt o ClickDetector
+    if obj:FindFirstChildOfClass("ProximityPrompt") or obj:FindFirstChildOfClass("ClickDetector") then
+        return true
+    end
+    if obj:IsA("Model") then
+        for _, child in ipairs(obj:GetDescendants()) do
+            if child:IsA("ProximityPrompt") or child:IsA("ClickDetector") then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function getCratePart(obj)
+    if obj:IsA("BasePart") then return obj end
+    if obj:IsA("Model") then
+        return obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+    end
+    return nil
+end
+
+local function tryOpen(obj)
+    -- ProximityPrompt
+    local prompt = obj:FindFirstChildOfClass("ProximityPrompt") or obj:FindFirstChildWhichIsA("ProximityPrompt", true)
+    if prompt then
+        pcall(function()
+            fireproximityprompt(prompt)
+        end)
+        return true
+    end
+
+    -- ClickDetector
+    local click = obj:FindFirstChildOfClass("ClickDetector") or obj:FindFirstChildWhichIsA("ClickDetector", true)
+    if click then
+        pcall(function()
+            fireclickdetector(click)
+        end)
+        return true
+    end
+
+    -- Touch
+    local part = getCratePart(obj)
+    if part and RootPart then
+        pcall(function()
+            firetouchinterest(RootPart, part, 0)
+            task.wait(0.05)
+            firetouchinterest(RootPart, part, 1)
+        end)
+        return true
+    end
+
+    return false
+end
+
+local function getNearbyCrates()
+    local list = {}
+    if not RootPart then return list end
+
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if isCrate(obj) then
+            local part = getCratePart(obj)
+            if part then
+                local dist = (part.Position - RootPart.Position).Magnitude
+                if dist <= maxDistance then
+                    table.insert(list, {obj = obj, part = part, dist = dist})
+                end
+            end
+        end
+    end
+
+    table.sort(list, function(a, b) return a.dist < b.dist end)
+    return list
+end
+
+-- ==================== AUTO FARM ====================
+Main:Section({ Title = "Auto Farm", Icon = "zap" })
+
+Main:Toggle({
+    Title = "AUTO FARM CAJAS",
+    Default = false,
+    Callback = function(v)
+        autoFarm = v
+        notify("Auto Farm", v and "ACTIVADO - Buscando cajas..." or "DESACTIVADO")
+    end
+})
+
+Main:Slider({
+    Title = "Velocidad de movimiento",
+    Value = { Min = 16, Max = 40, Default = 22 },
+    Callback = function(v) farmSpeed = v end
+})
+
+Main:Slider({
+    Title = "Distancia máxima",
+    Value = { Min = 40, Max = 250, Default = 120 },
+    Callback = function(v) maxDistance = v end
+})
+
+Main:Slider({
+    Title = "Delay al abrir",
+    Value = { Min = 0.2, Max = 2, Default = 0.6 },
+    Callback = function(v) openDelay = v end
+})
+
+Main:Paragraph({
+    Title = "Cómo funciona",
+    Desc = "El script busca cajas/crates cercanos, camina hacia ellos y intenta abrirlos (ProximityPrompt / ClickDetector / Touch). Los items deberían ir a tu mochila automáticamente si el juego lo permite."
+})
+
+task.spawn(function()
+    while true do
+        if autoFarm and RootPart and Humanoid and Humanoid.Health > 0 then
+            local crates = getNearbyCrates()
+            if #crates > 0 then
+                local target = crates[1]
+                local part = target.part
+
+                -- Moverse hacia la caja
+                Humanoid.WalkSpeed = farmSpeed
+                Humanoid:MoveTo(part.Position)
+
+                -- Si está cerca, intentar abrir
+                if target.dist < 12 then
+                    tryOpen(target.obj)
+                    task.wait(openDelay)
+                else
+                    task.wait(0.25)
+                end
+            else
+                -- No hay cajas cerca, espera un poco
+                task.wait(1)
+            end
+        else
+            task.wait(0.4)
+        end
+    end
+end)
+
+-- ==================== OBJECT LOGGER ====================
+Logger:Section({ Title = "Object Logger", Icon = "search" })
+
+local logEnabled = false
+local lastLog = {}
+
+Logger:Toggle({
+    Title = "ACTIVAR LOGGER",
+    Default = false,
+    Callback = function(v)
+        logEnabled = v
+        notify("Logger", v and "Activado - revisa la consola/F9" or "Desactivado")
+    end
+})
+
+Logger:Button({
+    Title = "ESCANEAR AHORA",
+    Callback = function()
+        local count = 0
+        local found = {}
+        print("========== OBJECT LOG ==========")
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if isCrate(obj) then
+                count += 1
+                local part = getCratePart(obj)
+                local pos = part and part.Position or Vector3.zero
+                local dist = RootPart and (pos - RootPart.Position).Magnitude or 0
+                local line = string.format("[%d] %s | Dist: %.1f | Class: %s", count, obj:GetFullName(), dist, obj.ClassName)
+                print(line)
+                table.insert(found, line)
+            end
+        end
+        print("Total cajas/objetos encontrados: " .. count)
+        print("================================")
+        notify("Logger", "Encontrados: " .. count .. " objetos (mira F9)")
+    end
+})
+
+Logger:Button({
+    Title = "LISTAR TODOS LOS MODELOS",
+    Callback = function()
+        print("========== TODOS LOS MODELOS ==========")
+        local count = 0
+        for _, obj in ipairs(workspace:GetChildren()) do
+            count += 1
+            print(count .. " | " .. obj.Name .. " (" .. obj.ClassName .. ")")
+        end
+        print("Total: " .. count)
+        notify("Logger", "Modelos listados en consola (F9)")
+    end
+})
+
+Logger:Paragraph({
+    Title = "Info",
+    Desc = "Usa 'Escanear Ahora' para ver todas las cajas/crates del mapa y su distancia. Abre la consola del executor o F9 para ver el log completo."
+})
+
+-- ==================== SETTINGS ====================
+Settings:Section({ Title = "Extra", Icon = "settings" })
+
+Settings:Button({
+    Title = "REJOIN",
+    Callback = function()
+        game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId, LP)
+    end
+})
+
+Settings:Button({
+    Title = "SERVER HOP",
+    Callback = function()
+        local Http = game:GetService("HttpService")
+        local TPS = game:GetService("TeleportService")
+        local ok, res = pcall(function()
+            return Http:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+        end)
+        if ok and res and res.data then
+            for _, s in ipairs(res.data) do
+                if s.playing < s.maxPlayers and s.id ~= game.JobId then
+                    TPS:TeleportToPlaceInstance(game.PlaceId, s.id)
+                    return
+                end
+            end
+        end
+        TPS:Teleport(game.PlaceId)
+    end
+})
+
+notify("Survive Apocalypse", "Script cargado correctamente")
+print("[Survive Apocalypse Auto Farm] Cargado - By Navi")
