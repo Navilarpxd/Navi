@@ -1,31 +1,25 @@
 --[[
-    Survive the Apocalypse - Auto Farm + Object Logger (v2)
+    Survive the Apocalypse - Loot Bringer + Full Logger
     By Navi
 ]]
 
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
-
 local LP = Players.LocalPlayer
-local Character, Humanoid, RootPart
 
-local function updateChar()
-    Character = LP.Character or LP.CharacterAdded:Wait()
-    Humanoid = Character:WaitForChild("Humanoid")
-    RootPart = Character:WaitForChild("HumanoidRootPart")
+local function getChar()
+    local char = LP.Character or LP.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    return char, hrp
 end
-updateChar()
-LP.CharacterAdded:Connect(updateChar)
 
 -- ==================== UI ====================
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
 local Window = WindUI:CreateWindow({
-    Title = "Survive Apocalypse | Auto Farm",
+    Title = "Survive Apocalypse | Loot",
     Author = "By Navi",
     Folder = "SurviveApocalypse",
-    Size = UDim2.fromOffset(520, 460),
+    Size = UDim2.fromOffset(520, 500),
     Transparent = false,
     Theme = "Dark",
 })
@@ -34,52 +28,35 @@ local Main = Window:Tab({ Title = "Main", Icon = "box" })
 local Logger = Window:Tab({ Title = "Logger", Icon = "list" })
 local Settings = Window:Tab({ Title = "Settings", Icon = "settings" })
 
--- ==================== VARIABLES ====================
-local autoFarm = false
-local farmSpeed = 24
-local openDelay = 0.45
-local maxDistance = 150
-local teleportToCrate = true
-
-local knownNames = {
-    "crate", "box", "chest", "loot", "supply", "container",
-    "cache", "drop", "package", "storage", "case", "trunk",
-    "ammo", "weapon", "med", "food", "backpack", "bag"
-}
-
--- ==================== HELPERS ====================
 local function notify(title, text)
     pcall(function()
         WindUI:Notify({
-            Title = title or "Survive Farm",
+            Title = title or "Survive",
             Content = text or "",
             Duration = 2.5
         })
     end)
 end
 
-local function isCrate(obj)
+-- Nombres reales del juego (de tu scan)
+local lootKeywords = {
+    "trunk", "crate", "box", "cardboard", "beans", "fuel",
+    "generator", "tray", "workbench", "ammo", "med", "food",
+    "loot", "supply", "bag", "backpack", "case", "chest"
+}
+
+local function isLoot(obj)
     if not obj then return false end
     local name = string.lower(obj.Name)
-
-    for _, key in ipairs(knownNames) do
-        if string.find(name, key) then return true end
-    end
-
-    -- ProximityPrompt o ClickDetector
-    if obj:IsA("BasePart") or obj:IsA("Model") then
-        if obj:FindFirstChildOfClass("ProximityPrompt") then return true end
-        if obj:FindFirstChildOfClass("ClickDetector") then return true end
-        for _, d in ipairs(obj:GetDescendants()) do
-            if d:IsA("ProximityPrompt") or d:IsA("ClickDetector") then
-                return true
-            end
+    for _, key in ipairs(lootKeywords) do
+        if string.find(name, key) then
+            return true
         end
     end
     return false
 end
 
-local function getCratePart(obj)
+local function getPart(obj)
     if obj:IsA("BasePart") then return obj end
     if obj:IsA("Model") then
         return obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart", true)
@@ -87,200 +64,153 @@ local function getCratePart(obj)
     return nil
 end
 
-local function tryOpen(obj)
-    local opened = false
+-- ==================== MAIN - TRAER LOOT ====================
+Main:Section({ Title = "Loot Bringer", Icon = "zap", Opened = true })
 
-    -- 1. ProximityPrompt
-    local prompts = {}
-    if obj:IsA("ProximityPrompt") then
-        table.insert(prompts, obj)
-    end
-    for _, d in ipairs(obj:GetDescendants()) do
-        if d:IsA("ProximityPrompt") then
-            table.insert(prompts, d)
+local bringRadius = 8
+local statusLabel = Main:Paragraph({
+    Title = "Estado",
+    Desc = "Listo. Presiona el botón para traer el loot."
+})
+
+Main:Slider({
+    Title = "Radio alrededor tuyo",
+    Value = { Min = 3, Max = 20, Default = 8 },
+    Callback = function(v) bringRadius = v end
+})
+
+Main:Button({
+    Title = "TRAER TODO EL LOOT AQUÍ",
+    Icon = "package",
+    Callback = function()
+        local char, hrp = getChar()
+        if not hrp then
+            notify("Error", "No se encontró tu personaje")
+            return
         end
-    end
-    for _, prompt in ipairs(prompts) do
-        pcall(function()
-            fireproximityprompt(prompt)
-            opened = true
-        end)
-        -- método alternativo
-        pcall(function()
-            prompt:InputHoldBegin()
-            task.wait(0.1)
-            prompt:InputHoldEnd()
-            opened = true
-        end)
-    end
 
-    -- 2. ClickDetector
-    for _, d in ipairs(obj:GetDescendants()) do
-        if d:IsA("ClickDetector") then
-            pcall(function()
-                fireclickdetector(d)
-                opened = true
-            end)
-        end
-    end
-    if obj:IsA("ClickDetector") then
-        pcall(function()
-            fireclickdetector(obj)
-            opened = true
-        end)
-    end
+        local brought = 0
+        local myPos = hrp.Position
 
-    -- 3. Touch
-    local part = getCratePart(obj)
-    if part and RootPart then
-        pcall(function()
-            firetouchinterest(RootPart, part, 0)
-            task.wait(0.07)
-            firetouchinterest(RootPart, part, 1)
-            opened = true
-        end)
-    end
-
-    return opened
-end
-
-local function getNearbyCrates()
-    local list = {}
-    if not RootPart then return list end
-
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if isCrate(obj) then
-            local part = getCratePart(obj)
-            if part and part:IsA("BasePart") then
-                local dist = (part.Position - RootPart.Position).Magnitude
-                if dist <= maxDistance and dist > 1 then
-                    table.insert(list, {
-                        obj = obj,
-                        part = part,
-                        dist = dist,
-                        name = obj.Name
-                    })
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if isLoot(obj) then
+                local part = getPart(obj)
+                if part and part:IsA("BasePart") then
+                    if not part:IsDescendantOf(char) then
+                        local offset = Vector3.new(
+                            math.random(-bringRadius, bringRadius),
+                            math.random(1, 4),
+                            math.random(-bringRadius, bringRadius)
+                        )
+                        pcall(function()
+                            if obj:IsA("Model") and obj.PrimaryPart then
+                                obj:PivotTo(CFrame.new(myPos + offset))
+                            else
+                                part.CFrame = CFrame.new(myPos + offset)
+                                part.Anchored = false
+                            end
+                            brought = brought + 1
+                        end)
+                    end
                 end
             end
         end
+
+        local dropped = workspace:FindFirstChild("DroppedItems")
+        if dropped then
+            for _, obj in ipairs(dropped:GetDescendants()) do
+                local part = getPart(obj)
+                if part and part:IsA("BasePart") then
+                    local offset = Vector3.new(
+                        math.random(-bringRadius, bringRadius),
+                        math.random(1, 3),
+                        math.random(-bringRadius, bringRadius)
+                    )
+                    pcall(function()
+                        part.CFrame = CFrame.new(myPos + offset)
+                        brought = brought + 1
+                    end)
+                end
+            end
+        end
+
+        pcall(function()
+            statusLabel:SetDesc("Traídos: " .. brought .. " objetos cerca de ti")
+        end)
+        notify("Loot Bringer", "Se trajeron " .. brought .. " objetos")
     end
+})
 
-    table.sort(list, function(a, b) return a.dist < b.dist end)
-    return list
-end
+Main:Button({
+    Title = "TRAER SOLO CRATES / TRUNKS / BOX",
+    Icon = "box",
+    Callback = function()
+        local char, hrp = getChar()
+        if not hrp then return end
 
--- ==================== AUTO FARM ====================
-Main:Section({ Title = "Auto Farm", Icon = "zap", Opened = true })
+        local keywords = {"trunk", "crate", "box", "cardboard"}
+        local brought = 0
+        local myPos = hrp.Position
 
-Main:Toggle({
-    Title = "AUTO FARM CAJAS",
-    Default = false,
-    Callback = function(v)
-        autoFarm = v
-        notify("Auto Farm", v and "ACTIVADO" or "DESACTIVADO")
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            local name = string.lower(obj.Name)
+            local match = false
+            for _, k in ipairs(keywords) do
+                if string.find(name, k) then match = true break end
+            end
+            if match then
+                local part = getPart(obj)
+                if part and not part:IsDescendantOf(char) then
+                    local offset = Vector3.new(
+                        math.random(-bringRadius, bringRadius),
+                        2,
+                        math.random(-bringRadius, bringRadius)
+                    )
+                    pcall(function()
+                        if obj:IsA("Model") then
+                            obj:PivotTo(CFrame.new(myPos + offset))
+                        else
+                            part.CFrame = CFrame.new(myPos + offset)
+                        end
+                        brought = brought + 1
+                    end)
+                end
+            end
+        end
+
+        pcall(function()
+            statusLabel:SetDesc("Crates/Trunks/Box traídos: " .. brought)
+        end)
+        notify("Loot", "Cajas traídas: " .. brought)
     end
-})
-
-Main:Toggle({
-    Title = "TELEPORT A LA CAJA",
-    Default = true,
-    Callback = function(v)
-        teleportToCrate = v
-    end
-})
-
-Main:Slider({
-    Title = "Velocidad",
-    Value = { Min = 16, Max = 50, Default = 24 },
-    Callback = function(v) farmSpeed = v end
-})
-
-Main:Slider({
-    Title = "Distancia máxima",
-    Value = { Min = 30, Max = 300, Default = 150 },
-    Callback = function(v) maxDistance = v end
-})
-
-Main:Slider({
-    Title = "Delay al abrir",
-    Value = { Min = 0.2, Max = 2, Default = 0.45 },
-    Callback = function(v) openDelay = v end
-})
-
-local statusLabel = Main:Paragraph({
-    Title = "Estado",
-    Desc = "Esperando..."
 })
 
 Main:Paragraph({
     Title = "Info",
-    Desc = "Activa AUTO FARM. Si no recoge, activa también TELEPORT A LA CAJA. Si sigue sin funcionar, usa el Logger y dime los nombres que salen."
+    Desc = "El botón principal trae Trunk, Crate, Box, Cardboard Box, Beans, Fuel, etc. hacia donde estás. Luego solo recógelos."
 })
 
--- Loop del auto farm
-task.spawn(function()
-    while true do
-        if autoFarm and RootPart and Humanoid and Humanoid.Health > 0 then
-            local crates = getNearbyCrates()
-
-            if #crates > 0 then
-                local target = crates[1]
-                local part = target.part
-
-                pcall(function()
-                    statusLabel:SetDesc(string.format("Yendo a: %s (%.1fm) | Cajas: %d", target.name, target.dist, #crates))
-                end)
-
-                if teleportToCrate and target.dist > 10 then
-                    -- Teleport cerca de la caja
-                    RootPart.CFrame = CFrame.new(part.Position + Vector3.new(0, 3, 0))
-                    task.wait(0.15)
-                else
-                    Humanoid.WalkSpeed = farmSpeed
-                    Humanoid:MoveTo(part.Position)
-                end
-
-                -- Intentar abrir varias veces
-                for i = 1, 3 do
-                    tryOpen(target.obj)
-                    task.wait(0.12)
-                end
-
-                task.wait(openDelay)
-            else
-                pcall(function()
-                    statusLabel:SetDesc("No hay cajas cerca... buscando")
-                end)
-                task.wait(0.8)
-            end
-        else
-            task.wait(0.35)
-        end
-    end
-end)
-
--- ==================== OBJECT LOGGER (resultados en la UI) ====================
+-- ==================== LOGGER COMPLETO ====================
 Logger:Section({ Title = "Object Logger", Icon = "search", Opened = true })
 
 local resultsLabel = Logger:Paragraph({
-    Title = "Resultados del escaneo",
-    Desc = "Presiona ESCANEAR AHORA para ver los objetos aquí mismo."
+    Title = "Resultados",
+    Desc = "Presiona ESCANEAR para ver todos los objetos aquí."
 })
 
 Logger:Button({
-    Title = "ESCANEAR AHORA",
+    Title = "ESCANEAR TODO (LOOT)",
     Icon = "search",
     Callback = function()
-        local crates = {}
-        local count = 0
+        local char, hrp = getChar()
+        local list = {}
 
         for _, obj in ipairs(workspace:GetDescendants()) do
-            if isCrate(obj) then
-                local part = getCratePart(obj)
+            if isLoot(obj) then
+                local part = getPart(obj)
                 if part then
-                    count += 1
-                    local dist = RootPart and (part.Position - RootPart.Position).Magnitude or 0
-                    table.insert(crates, {
+                    local dist = hrp and (part.Position - hrp.Position).Magnitude or 0
+                    table.insert(list, {
                         name = obj.Name,
                         full = obj:GetFullName(),
                         dist = dist,
@@ -290,62 +220,47 @@ Logger:Button({
             end
         end
 
-        table.sort(crates, function(a, b) return a.dist < b.dist end)
+        table.sort(list, function(a, b) return a.dist < b.dist end)
 
-        -- Mostrar solo los 25 más cercanos en la UI
-        local text = "Total encontrados: " .. count .. "\n\n"
-        local show = math.min(#crates, 25)
-
-        for i = 1, show do
-            local c = crates[i]
+        local text = "Total loot: " .. #list .. "\n\n"
+        local maxShow = math.min(#list, 80)
+        for i = 1, maxShow do
+            local c = list[i]
             text = text .. string.format("%d. %s  (%.0fm)\n", i, c.name, c.dist)
         end
-
-        if count > 25 then
-            text = text .. "\n... y " .. (count - 25) .. " más (mira F9 para todos)"
+        if #list > maxShow then
+            text = text .. "\n... +" .. (#list - maxShow) .. " más"
         end
 
         pcall(function()
             resultsLabel:SetDesc(text)
         end)
 
-        -- También imprimir en consola
-        print("========== OBJECT LOG ==========")
-        for i, c in ipairs(crates) do
+        print("========== LOOT LOG ==========")
+        for i, c in ipairs(list) do
             print(string.format("[%d] %s | %.1fm | %s", i, c.full, c.dist, c.class))
         end
-        print("Total: " .. count)
-        print("================================")
+        print("Total: " .. #list)
 
-        notify("Logger", "Encontrados: " .. count .. " objetos")
+        notify("Logger", "Loot encontrados: " .. #list)
     end
 })
 
 Logger:Button({
-    Title = "LISTAR MODELOS DEL WORKSPACE",
+    Title = "LISTAR WORKSPACE",
     Callback = function()
-        local text = "Modelos en Workspace:\n\n"
+        local text = "Workspace:\n\n"
         local count = 0
         for _, obj in ipairs(workspace:GetChildren()) do
-            count += 1
-            if count <= 30 then
-                text = text .. count .. ". " .. obj.Name .. " (" .. obj.ClassName .. ")\n"
-            end
+            count = count + 1
+            text = text .. count .. ". " .. obj.Name .. " (" .. obj.ClassName .. ")\n"
             print(count .. " | " .. obj.Name .. " (" .. obj.ClassName .. ")")
-        end
-        if count > 30 then
-            text = text .. "\n... +" .. (count - 30) .. " más (mira F9)"
         end
         pcall(function()
             resultsLabel:SetDesc(text)
         end)
         notify("Logger", "Modelos: " .. count)
     end
-})
-
-Logger:Paragraph({
-    Title = "Ayuda",
-    Desc = "1. Dale a ESCANEAR AHORA\n2. Mira los nombres que salen abajo\n3. Si el Auto Farm no agarra las cajas, dime 2-3 nombres que aparezcan y los agrego"
 })
 
 -- ==================== SETTINGS ====================
@@ -378,5 +293,5 @@ Settings:Button({
     end
 })
 
-notify("Survive Apocalypse", "Script v2 cargado")
-print("[Survive Apocalypse Auto Farm v2] Listo")
+notify("Survive Apocalypse", "Loot Bringer cargado")
+print("[Survive Apocalypse] Loot Bringer listo - By Navi")
